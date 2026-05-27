@@ -22,7 +22,7 @@ TERMOS_SAUDE = [
 dados_coletados = []
 
 def extrair_fakes_saude():
-    print("Iniciando coleta anti-bloqueio de Fake News (Filtrando apenas Saúde)...")
+    print("Iniciando coleta de Fake News ...")
     
     for url in FEEDS_FAKES:
         print(f"\nLendo a fonte: {url}")
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         df = df.drop_duplicates(subset=['titulo'])
         
         df.to_csv(caminho_arquivo, index=False, encoding='utf-8')
-        print(f"\n[SUCESSO] {len(df)} Fake News puramente de Saúde salvas em: {caminho_arquivo}")
+        print(f"\n[SUCESSO] {len(df)} Fake News salvas em: {caminho_arquivo}")
         
         print("\nExemplo dos primeiros títulos capturados:")
         for i, titulo in enumerate(df['titulo'].head(5)):

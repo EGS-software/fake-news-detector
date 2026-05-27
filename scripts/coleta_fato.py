@@ -4,8 +4,6 @@ from bs4 import BeautifulSoup
 import os
 
 # 1. Configurações Iniciais
-# Vamos usar o feed RSS de Saúde/Bem-Estar de um portal confiável (ex: G1 Saúde)
-# Isso garante textos com linguagem jornalística, revisada e factual.
 URL_FEED = "https://g1.globo.com/dynamo/saude/rss2.xml"
 
 dados_coletados = []
@@ -32,7 +30,7 @@ def extrair_noticias_fato():
                 dados_coletados.append({
                     "titulo": titulo,
                     "texto": texto_limpo,
-                    "classe": "Fato", # Rotulando conforme exigência do professor
+                    "classe": "Fato",
                     "fonte": "G1 Saúde / Oficial",
                     "link": link
                 })
