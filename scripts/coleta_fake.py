@@ -3,7 +3,6 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import os
 
-# 1. O TRUQUE DE MESTRE: Disfarçar o feedparser para evitar bloqueios de robôs
 feedparser.USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 # 2. Feeds Ampliados (O filtro abaixo fará o trabalho de limpar)
@@ -13,7 +12,7 @@ FEEDS_FAKES = [
     "https://www.e-farsas.com/feed"               # E-farsas (Geral)
 ]
 
-# 3. Filtro estrito: O texto DEVE conter termos do nosso nicho
+# 3. Filtro estrito
 TERMOS_SAUDE = [
     "emagrece", "emagrecimento", "dieta", "receita", "peso", "barriga", 
     "cápsula", "suplemento", "gordura", "chá", "detox", "médico", 
@@ -30,8 +29,6 @@ def extrair_fakes_saude():
         
         try:
             feed = feedparser.parse(url)
-            
-            # Se ainda vier 0, a URL pode estar instável, mas o script continua pras outras
             quantidade = len(feed.entries)
             print(f"[{feed.feed.get('title', 'Fonte')}] - Encontrados {quantidade} artigos para analisar.")
             
@@ -45,7 +42,7 @@ def extrair_fakes_saude():
                 
                 texto_teste = (titulo + " " + texto_limpo).lower()
                 
-                # A mágica do filtro: Verifica se o texto tem relação com o nosso tema
+                # Verifica se o texto tem relação com o nosso tema
                 if any(termo in texto_teste for termo in TERMOS_SAUDE):
                     
                     # Ignora textos muito curtos e propagandas vazias
