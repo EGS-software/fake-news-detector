@@ -3,52 +3,58 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import os
 
-# 1. Configurações Iniciais
 URL_FEED = "https://g1.globo.com/dynamo/saude/rss2.xml"
+DEFAULT_OUTPUT_CSV = os.path.join("dados", "saude_fatos_bruto.csv")
 
-dados_coletados = []
 
-def extrair_noticias_fato():
+def ensure_data_dir():
+    os.makedirs("dados", exist_ok=True)
+
+
+def collect_fact_news(force=False, output_csv=DEFAULT_OUTPUT_CSV):
+    ensure_data_dir()
+    if os.path.exists(output_csv) and not force:
+        print(f"Arquivo de fatos já existe em '{output_csv}', pulando coleta.")
+        return pd.read_csv(output_csv)
+
     print(f"Lendo o Feed RSS oficial de Saúde: {URL_FEED}")
-    
+    records = []
     try:
-        # O feedparser lê o XML e transforma em um dicionário Python
         feed = feedparser.parse(URL_FEED)
-        
         print(f"Encontrados {len(feed.entries)} artigos recentes.")
-        
         for post in feed.entries:
-            titulo = post.title
-            link = post.link
-            
-            # O resumo (description) geralmente vem com tags HTML, então usamos BeautifulSoup para limpar
-            resumo_html = post.get('description', '')
+            titulo = post.get("title", "")
+            link = post.get("link", "")
+            resumo_html = post.get("description", "")
             texto_limpo = BeautifulSoup(resumo_html, 'html.parser').get_text(strip=True)
-            
-            # Filtramos para pegar apenas textos que tenham conteúdo relevante
             if len(texto_limpo) > 30:
-                dados_coletados.append({
+                records.append({
                     "titulo": titulo,
                     "texto": texto_limpo,
                     "classe": "Fato",
                     "fonte": "G1 Saúde / Oficial",
-                    "link": link
+                    "link": link,
                 })
-                
-    except Exception as e:
-        print(f"Erro ao processar o feed RSS: {e}")
+    except Exception as exc:
+        print(f"Erro ao processar o feed RSS: {exc}")
 
-# 2. Execução
+    if not records:
+        if os.path.exists(output_csv):
+            print("Nenhuma notícia nova coletada; usando arquivo existente.")
+            return pd.read_csv(output_csv)
+        raise RuntimeError("Não foi possível coletar fatos e o arquivo base não existe.")
+
+    df = pd.DataFrame(records).drop_duplicates(subset=["titulo"]).reset_index(drop=True)
+    df.to_csv(output_csv, index=False, encoding='utf-8')
+    print(f"Notícias de fato salvas em '{output_csv}'.")
+    return df
+
+
+def print_collection_summary(df):
+    print(f"\nTotal de fatos coletados: {len(df)}")
+    print(df[['titulo', 'classe']].head(5).to_string(index=False))
+
+
 if __name__ == "__main__":
-    extrair_noticias_fato()
-    
-    # 3. Salvamento dos Dados
-    if dados_coletados:
-        df = pd.DataFrame(dados_coletados)
-        os.makedirs('dados', exist_ok=True)
-        
-        caminho_arquivo = 'dados/saude_fatos_bruto.csv'
-        df.to_csv(caminho_arquivo, index=False, encoding='utf-8')
-        print(f"\nSucesso! {len(dados_coletados)} textos coletados e salvos em {caminho_arquivo}")
-    else:
-        print("\nNenhum dado foi coletado. Verifique a URL do Feed.")
+    df_fato = collect_fact_news(force=False)
+    print_collection_summary(df_fato)

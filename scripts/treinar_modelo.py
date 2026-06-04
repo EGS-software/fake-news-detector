@@ -1,74 +1,109 @@
-import pandas as pd
-import nltk
-from nltk.corpus import stopwords
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
 import os
 
-# 1. Carrega e prepara os dados
-print("Carregando e misturando os dados...")
-df_fake = pd.read_csv("dados/saude_fake_bruto.csv") 
-df_fato = pd.read_csv("dados/saude_fatos_bruto.csv")
+import matplotlib.pyplot as plt
+import nltk
+import pandas as pd
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
 
-df_completo = pd.concat([df_fake, df_fato], ignore_index=True)
-df_completo = df_completo.sample(frac=1, random_state=42).reset_index(drop=True)
+DATA_DIR = "dados"
+CONFUSION_PNG = os.path.join(DATA_DIR, "matriz_confusao.png")
 
-# 2. Pré-processamento e Divisão (Treino/Teste)
-print("Vetorizando textos e removendo stopwords...")
-nltk.download('stopwords', quiet=True)
-stop_words_pt = stopwords.words('portuguese')
 
-X = df_completo['texto']
-y = df_completo['classe']
+def ensure_data_dir():
+    os.makedirs(DATA_DIR, exist_ok=True)
 
-# 75% Treino e 25% Teste
-X_treino, X_teste, y_treino, y_teste = train_test_split(
-    X, y, test_size=0.25, stratify=y, random_state=42
-)
 
-vetorizador = CountVectorizer(stop_words=stop_words_pt)
-X_treino_vetorizado = vetorizador.fit_transform(X_treino)
-X_teste_vetorizado = vetorizador.transform(X_teste)
+def normalize_text(df, text_column="texto"):
+    df = df.copy()
+    df[text_column] = df[text_column].astype(str).str.lower()
+    df[text_column] = df[text_column].str.replace("\n", " ", regex=False)
+    df[text_column] = df[text_column].str.replace("\r", " ", regex=False)
+    df[text_column] = df[text_column].str.replace('"', "'", regex=False)
+    return df
 
-# 3. Treinamento do Modelo Naive Bayes
-print("Treinando o modelo de Inteligência Artificial...")
-modelo_nb = MultinomialNB()
-modelo_nb.fit(X_treino_vetorizado, y_treino)
 
-# 4. Avaliação e Métricas
-y_previsto = modelo_nb.predict(X_teste_vetorizado)
-acuracia = accuracy_score(y_teste, y_previsto)
+def build_dataset(fake_df, fact_df, save_path=None):
+    ensure_data_dir()
+    df_completo = pd.concat([fake_df, fact_df], ignore_index=True)
+    df_completo = normalize_text(df_completo, "texto")
+    df_completo = df_completo.sample(frac=1, random_state=42).reset_index(drop=True)
+    dataset = df_completo[["texto", "classe"]].copy()
+    if save_path:
+        dataset.to_csv(save_path, index=False, quoting=1)
+        print(f"Conjunto de dados salvo em '{save_path}'.")
+    return dataset
 
-print("\n" + "="*40)
-print(f"🎯 ACURÁCIA FINAL DO MODELO: {acuracia * 100:.2f}%")
-print("="*40 + "\n")
 
-# 5. Gera e salva a Matriz de Confusão
-classes_reais = modelo_nb.classes_
-matriz = confusion_matrix(y_teste, y_previsto, labels=classes_reais)
+def train_model(df, save_confusion_path=CONFUSION_PNG):
+    ensure_data_dir()
+    print("Treinando o modelo de classificação...\n")
+    nltk.download("stopwords", quiet=True)
+    stop_words_pt = stopwords.words("portuguese")
 
-disp = ConfusionMatrixDisplay(confusion_matrix=matriz, display_labels=classes_reais)
-disp.plot(cmap=plt.cm.Blues)
-plt.title("Matriz de Confusão - Fake News (Saúde)")
+    X = df["texto"]
+    y = df["classe"]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.25, stratify=y, random_state=42
+    )
 
-caminho_imagem = "dados/matriz_confusao.png"
-plt.savefig(caminho_imagem, bbox_inches='tight')
-print(f"📊 Imagem da Matriz de Confusão salva com sucesso em: {caminho_imagem}")
+    vectorizer = CountVectorizer(stop_words=stop_words_pt)
+    X_train_vec = vectorizer.fit_transform(X_train)
+    X_test_vec = vectorizer.transform(X_test)
 
-# 6. Demonstração
-textos_demonstracao = [
-    "Boato – O oncologista Rafael Onuki Sato gravou um vídeo explicando como o limão pode prevenir o câncer e combater as células cancerígenas.Chega um momento em que as fake news começam, de forma cada vez mais constante, a se repetir. O caso de hoje no Boatos.org fala de uma história com conteúdo muito parecido com desmentidos que já fizemos por aqui, uma mesma vítima de boato e uma forma “só um pouquinho” diferente.Começou a circular com força na internet um vídeo de uma pessoa falando que o limão é o principal aliado contra o câncer. De acordo com o vídeo, o limão é um alimento que deixa o sangue alcalino e faz com que as células do câncer tenham a morte acelerada. Por isso, a receita para prevenir o câncer e combater a doença seria comer dois limões com a casca por dia e tomar o óleo da casca da fruta.Mas não para por aí. O vídeo está sendo acompanhado da informação de que a dica não foi passada “por uma pessoa qualquer”. A filmagem aponta que a pessoa do vídeo é o médico oncologista Rafael Onuki Sato. Leia a mensagem que acompanha o vídeo (optamos por não exibir o vídeo aqui):Dr. Rafael Onuki Sato *ONCOLOGISTA EM LONDRINA* Formado em Medicina pela Universidade Estadual de Londrina (UEL), possui residência em Cirurgia Geral pela Faculdade de Medicina de Marília (FAMEMA) e em Cirurgia Oncológica pelo Hospital de Câncer de Barretos. *PRESTE ATENÇÃO NA FALA DO MÉDICO* [vídeo].Médico oncologista disse que limão combate e mata as células do câncer?A mensagem está circulando muito na internet. Mas será mesmo que o Dr. Rafael Onuki Sato gravou um vídeo recomendando o limão para combater o câncer? E será mesmo que a dica é tão válida assim? A resposta é não. Para você entender tudo, vamos aos fatos.Vamos ao mais simples primeiro. Se você está pensando em seguir a dica do limão achando que nunca terá câncer ou (muito pior) deseja parar um tratamento contra a doença só para usar o limão porque um médico recomendou, calma lá. A pessoa do vídeo não é um médico oncologista.O nome do próprio Dr. Rafael já foi utilizado em outro boato desmentido por aqui: o que fala que o chá da folha de graviola cura o câncer. À época, o próprio médico não só desmentiu que havia gravado um áudio recomendando o uso do chá da fruta contra o câncer como falou a que era contra receitas alternativas. ",
-    "A Agência Nacional de Vigilância Sanitária (Anvisa) determinou a apreensão dos medicamentos Gluconex e Tirzedral, produzidos por empresa não identificada. A medida também proíbe a comercialização, a distribuição, a importação e o uso dos produtos. Amplamente divulgados na internet e vendidos como medicamentos injetáveis de GLP-1, os produtos são conhecidos popularmente como canetas emagrecedoras, mas não têm registro, notificação ou cadastro na Anvisa. Em nota, a Anvisa destacou que, por se tratarem de produtos irregulares e de origem desconhecida, não há qualquer garantia quanto ao seu conteúdo ou à sua qualidade. Por isso, não devem ser utilizados em nenhuma hipótese. Profissionais de saúde e pacientes que identificarem produtos das marcas e lotes citados podem entrar em contato com a agência, por meio dos canais de atendimento, ou com a vigilância sanitária local, utilizando os contatos disponíveis no portal da Anvisa."
+    model = MultinomialNB()
+    model.fit(X_train_vec, y_train)
 
-]  
+    y_pred = model.predict(X_test_vec)
+    accuracy = accuracy_score(y_test, y_pred)
 
-print("\n--- DEMONSTRAÇÃO AO VIVO ---\n")
-textos_novos_vet = vetorizador.transform(textos_demonstracao)
-previsoes = modelo_nb.predict(textos_novos_vet)
+    print("\n" + "=" * 40)
+    print(f"🎯 Acurácia final do modelo: {accuracy * 100:.2f}%")
+    print("=" * 40 + "\n")
 
-for i in range(len(textos_demonstracao)):
-    print(f"TEXTO: '{textos_demonstracao[i]}'")
-    print(f"-> CLASSIFICAÇÃO DA IA: {previsoes[i]}\n")
+    labels = model.classes_
+    matrix = confusion_matrix(y_test, y_pred, labels=labels)
+    disp = ConfusionMatrixDisplay(confusion_matrix=matrix, display_labels=labels)
+    disp.plot(cmap=plt.cm.Blues)
+    plt.title("Matriz de Confusão - Fake News (Saúde)")
+    plt.savefig(save_confusion_path, bbox_inches="tight")
+    plt.close()
+    print(f"Imagem de matriz de confusão salva em: '{save_confusion_path}'")
+
+    return model, vectorizer, accuracy
+
+
+def count_dataset_predictions(model, vectorizer, df):
+    X = df["texto"]
+    y_pred = model.predict(vectorizer.transform(X))
+    counts = pd.Series(y_pred).value_counts()
+    return counts.to_dict()
+
+
+def demo_predictions(model, vectorizer, texts):
+    print("\n--- DEMONSTRAÇÃO AO VIVO ---\n")
+    X_new = vectorizer.transform(texts)
+    predictions = model.predict(X_new)
+    for texto, previsao in zip(texts, predictions):
+        print(f"TEXTO: '{texto[:200]}...'")
+        print(f"-> CLASSIFICAÇÃO DA IA: {previsao}\n")
+
+
+def load_raw_dataset(fake_csv, fact_csv):
+    fake_df = pd.read_csv(fake_csv)
+    fact_df = pd.read_csv(fact_csv)
+    return fake_df, fact_df
+
+
+if __name__ == "__main__":
+    fake_csv = os.path.join(DATA_DIR, "saude_fake_bruto.csv")
+    fact_csv = os.path.join(DATA_DIR, "saude_fatos_bruto.csv")
+
+    fake_df, fact_df = load_raw_dataset(fake_csv, fact_csv)
+    dataset = build_dataset(fake_df, fact_df)
+    model, vectorizer, _ = train_model(dataset)
+    counts = count_dataset_predictions(model, vectorizer, dataset)
+    print(f"\nContagem de previsões pelo modelo: {counts}")
