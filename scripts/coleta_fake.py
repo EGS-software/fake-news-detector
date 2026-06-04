@@ -5,79 +5,79 @@ import os
 
 feedparser.USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-# 2. Feeds Ampliados (O filtro abaixo fará o trabalho de limpar)
 FEEDS_FAKES = [
-    "https://www.boatos.org/category/saude/feed", # Categoria oficial de saúde
-    "https://g1.globo.com/rss/g1/fato-ou-fake/",  # Fato ou Fake do G1 (Geral)
-    "https://www.e-farsas.com/feed"               # E-farsas (Geral)
+    "https://www.boatos.org/category/saude/feed",
+    "https://g1.globo.com/rss/g1/fato-ou-fake/",
+    "https://www.e-farsas.com/feed",
 ]
 
-# 3. Filtro estrito
 TERMOS_SAUDE = [
-    "emagrece", "emagrecimento", "dieta", "receita", "peso", "barriga", 
-    "cápsula", "suplemento", "gordura", "chá", "detox", "médico", 
-    "anvisa", "cura", "doença", "câncer", "diabetes"
+    "emagrece", "emagrecimento", "dieta", "receita", "peso", "barriga",
+    "cápsula", "suplemento", "gordura", "chá", "detox", "médico",
+    "anvisa", "cura", "doença", "câncer", "diabetes",
 ]
 
-dados_coletados = []
+DEFAULT_OUTPUT_CSV = os.path.join("dados", "saude_fake_bruto.csv")
+DEFAULT_PREVIEW_CSV = os.path.join("dados", "fakes_somente_saude.csv")
 
-def extrair_fakes_saude():
-    print("Iniciando coleta de Fake News ...")
-    
+
+def ensure_data_dir():
+    os.makedirs("dados", exist_ok=True)
+
+
+def collect_fake_news(force=False, output_csv=DEFAULT_OUTPUT_CSV, preview_csv=DEFAULT_PREVIEW_CSV):
+    ensure_data_dir()
+    if os.path.exists(output_csv) and not force:
+        print(f"Arquivo de Fake News já existe em '{output_csv}', pulando coleta.")
+        return pd.read_csv(output_csv)
+
+    print("Iniciando coleta de Fake News de saúde via RSS...")
+    feedparser.USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    records = []
+
     for url in FEEDS_FAKES:
-        print(f"\nLendo a fonte: {url}")
-        
+        print(f"Lendo a fonte: {url}")
         try:
             feed = feedparser.parse(url)
             quantidade = len(feed.entries)
             print(f"[{feed.feed.get('title', 'Fonte')}] - Encontrados {quantidade} artigos para analisar.")
-            
+
             for post in feed.entries:
-                titulo = post.title
-                link = post.link
-                
-                # Extrai o texto ignorando o HTML
+                titulo = post.get("title", "")
+                link = post.get("link", "")
                 conteudo_bruto = post.get('content', [{'value': post.get('description', '')}])[0]['value']
                 texto_limpo = BeautifulSoup(conteudo_bruto, 'html.parser').get_text(strip=True)
-                
                 texto_teste = (titulo + " " + texto_limpo).lower()
-                
-                # Verifica se o texto tem relação com o nosso tema
-                if any(termo in texto_teste for termo in TERMOS_SAUDE):
-                    
-                    # Ignora textos muito curtos e propagandas vazias
-                    if len(texto_limpo) > 50:
-                        dados_coletados.append({
-                            "titulo": titulo,
-                            "texto": texto_limpo,
-                            "classe": "Fake",
-                            "fonte": "RSS Checkers (Saúde)",
-                            "link": link
-                        })
-                        
-        except Exception as e:
-            print(f"Erro ao ler o feed {url}: {e}")
 
-# 4. Execução
+                if any(termo in texto_teste for termo in TERMOS_SAUDE) and len(texto_limpo) > 50:
+                    records.append({
+                        "titulo": titulo,
+                        "texto": texto_limpo,
+                        "classe": "Fake",
+                        "fonte": "RSS Checkers (Saúde)",
+                        "link": link,
+                    })
+        except Exception as exc:
+            print(f"Erro ao ler o feed {url}: {exc}")
+
+    if not records:
+        if os.path.exists(output_csv):
+            print("Nenhuma Fake News nova coletada; usando arquivo existente.")
+            return pd.read_csv(output_csv)
+        raise RuntimeError("Não foi possível coletar Fake News e o arquivo base não existe.")
+
+    df = pd.DataFrame(records).drop_duplicates(subset=["titulo"]).reset_index(drop=True)
+    df.to_csv(output_csv, index=False, encoding="utf-8")
+    df.to_csv(preview_csv, index=False, encoding="utf-8")
+    print(f"Fake News salvas em '{output_csv}'.\nArquivo de preview salvo em '{preview_csv}'.")
+    return df
+
+
+def print_collection_summary(df):
+    print(f"\nTotal de Fake News coletadas: {len(df)}")
+    print(df[['titulo', 'classe']].head(5).to_string(index=False))
+
+
 if __name__ == "__main__":
-    extrair_fakes_saude()
-    
-    # 5. Salvamento dos Dados
-    if dados_coletados:
-        df = pd.DataFrame(dados_coletados)
-        os.makedirs('dados', exist_ok=True)
-        
-        caminho_arquivo = 'dados/fakes_somente_saude.csv'
-        
-        # Remove eventuais notícias duplicadas que saíram em mais de um feed
-        df = df.drop_duplicates(subset=['titulo'])
-        
-        df.to_csv(caminho_arquivo, index=False, encoding='utf-8')
-        print(f"\n[SUCESSO] {len(df)} Fake News salvas em: {caminho_arquivo}")
-        
-        print("\nExemplo dos primeiros títulos capturados:")
-        for i, titulo in enumerate(df['titulo'].head(5)):
-            print(f"{i+1}. {titulo}")
-            
-    else:
-        print("\nNenhum dado capturado que corresponda ao filtro de saúde.")
+    df_fake = collect_fake_news(force=False)
+    print_collection_summary(df_fake)
