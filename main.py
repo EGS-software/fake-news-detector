@@ -28,28 +28,30 @@ def summarize_dataset(df):
     print(df["classe"].value_counts().to_string())
 
 
-def main(args=None):
+def main(args=None): # Comandos para controle de fluxo via linha de comando
     parser = argparse.ArgumentParser(description="Centraliza a coleta de dados e o treinamento do modelo.")
     parser.add_argument("--force-collect", action="store_true", help="Força coleta de RSS mesmo quando os arquivos já existem.")
     parser.add_argument("--skip-collect", action="store_true", help="Usa apenas os arquivos existentes e não executa coleta de RSS.")
     parser.add_argument("--skip-train", action="store_true", help="Pula o treinamento do modelo.")
     parsed = parser.parse_args(args=args)
 
-    ensure_data_dir()
+    ensure_data_dir() # Força existência de path e files necessários
 
-    if parsed.skip_collect:
+    if parsed.skip_collect: # Com flag de skip, não tenta coletar e apenas carrega os arquivos existentes
         print("Pulando coleta de RSS e usando dados existentes.")
         fake_df = load_csv(FAKE_CSV)
         fact_df = load_csv(FACT_CSV)
-    else:
+    else: # Coleta os dados normalmente, respeitando a flag de força coleta
         fake_df = collect_fake_news(force=parsed.force_collect)
         fact_df = collect_fact_news(force=parsed.force_collect)
 
-    df = build_dataset(fake_df, fact_df, save_path=WEKA_CSV)
+    # Construção da base de dados final e resumo
+    df = build_dataset(fake_df, fact_df, save_path=WEKA_CSV) # Salva a base final para uso em Weka
     summarize_dataset(df)
 
-    if not parsed.skip_train:
+    if not parsed.skip_train: # Treina o modelo e exibe resultados, a menos que a flag de skip seja usada
         model, vectorizer, accuracy = train_model(df)
+        # Contagem de previsões do modelo na base completa para análise adicional
         prediction_counts = count_dataset_predictions(model, vectorizer, df)
         print("\n--- CONTAGEM DE PREVISÕES DO MODELO ---")
         for label, count in prediction_counts.items():
