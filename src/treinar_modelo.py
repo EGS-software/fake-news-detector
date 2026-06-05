@@ -88,29 +88,3 @@ def count_dataset_predictions(model, vectorizer, df):
     y_pred = model.predict(vectorizer.transform(X))
     counts = pd.Series(y_pred).value_counts()
     return counts.to_dict()
-
-
-def demo_predictions(model, vectorizer, texts):
-    print("\n--- DEMONSTRAÇÃO AO VIVO ---\n")
-    X_new = vectorizer.transform(texts)
-    predictions = model.predict(X_new)
-    for texto, previsao in zip(texts, predictions):
-        print(f"TEXTO: '{texto[:200]}...'")
-        print(f"-> CLASSIFICAÇÃO DA IA: {previsao}\n")
-
-
-def load_raw_dataset(fake_csv, fact_csv):
-    fake_df = pd.read_csv(fake_csv)
-    fact_df = pd.read_csv(fact_csv)
-    return fake_df, fact_df
-
-
-if __name__ == "__main__":
-    fake_csv = os.path.join(DATA_DIR, "saude_fake_bruto.csv")
-    fact_csv = os.path.join(DATA_DIR, "saude_fatos_bruto.csv")
-
-    fake_df, fact_df = load_raw_dataset(fake_csv, fact_csv)
-    dataset = build_dataset(fake_df, fact_df)
-    model, vectorizer, _ = train_model(dataset)
-    counts = count_dataset_predictions(model, vectorizer, dataset)
-    print(f"\nContagem de previsões pelo modelo: {counts}")
