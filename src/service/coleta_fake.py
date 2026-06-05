@@ -26,7 +26,7 @@ def ensure_data_dir():
 
 
 def collect_fake_news(force=False, output_csv=DEFAULT_OUTPUT_CSV, preview_csv=DEFAULT_PREVIEW_CSV):
-    ensure_data_dir()
+    ensure_data_dir() # Garante que o diretório de dados exista antes de salvar arquivos
     if os.path.exists(output_csv) and not force:
         print(f"Arquivo de Fake News já existe em '{output_csv}', pulando coleta.")
         return pd.read_csv(output_csv)
@@ -34,14 +34,15 @@ def collect_fake_news(force=False, output_csv=DEFAULT_OUTPUT_CSV, preview_csv=DE
     print("Iniciando coleta de Fake News de saúde via RSS...")
     feedparser.USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     records = []
-
+    # Itera sobre cada feed de Fake News definido na lista
     for url in FEEDS_FAKES:
         print(f"Lendo a fonte: {url}")
-        try:
+        try: # Tenta ler o feed RSS e processar os artigos
             feed = feedparser.parse(url)
             quantidade = len(feed.entries)
             print(f"[{feed.feed.get('title', 'Fonte')}] - Encontrados {quantidade} artigos para analisar.")
 
+            # Processa cada artigo do feed, extraindo título, link e conteúdo, e filtrando por termos relacionados à saúde
             for post in feed.entries:
                 titulo = post.get("title", "")
                 link = post.get("link", "")

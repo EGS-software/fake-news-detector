@@ -67,7 +67,7 @@ def train_model(df, save_confusion_path=CONFUSION_PNG):
     accuracy = accuracy_score(y_test, y_pred)
 
     print("\n" + "=" * 40)
-    print(f"🎯 Acurácia final do modelo: {accuracy * 100:.2f}%")
+    print(f"Acurácia final do modelo: {accuracy * 100:.2f}%")
     print("=" * 40 + "\n")
 
     # Gera e salva a matriz de confusão para análise visual do desempenho do modelo
