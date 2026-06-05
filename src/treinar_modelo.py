@@ -84,6 +84,8 @@ def train_model(df, save_confusion_path=CONFUSION_PNG):
 
 
 def count_dataset_predictions(model, vectorizer, df):
+    """Função para contar quantas vezes o modelo prevê cada classe na base completa, 
+    útil para análise de distribuição de previsões."""
     X = df["texto"]
     y_pred = model.predict(vectorizer.transform(X))
     counts = pd.Series(y_pred).value_counts()
