@@ -2,9 +2,9 @@ import argparse
 import os
 
 import pandas as pd
-from scripts.coleta_fake import collect_fake_news
-from scripts.coleta_fato import collect_fact_news
-from scripts.treinar_modelo import build_dataset, count_dataset_predictions, train_model
+from src.coleta_fake import collect_fake_news
+from src.coleta_fato import collect_fact_news
+from src.treinar_modelo import build_dataset, count_dataset_predictions, train_model
 
 DATA_DIR = "dados"
 FAKE_CSV = os.path.join(DATA_DIR, "saude_fake_bruto.csv")
