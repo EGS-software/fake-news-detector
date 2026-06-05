@@ -74,7 +74,7 @@ def train_model(df, save_confusion_path=CONFUSION_PNG):
     labels = model.classes_
     matrix = confusion_matrix(y_test, y_pred, labels=labels)
     disp = ConfusionMatrixDisplay(confusion_matrix=matrix, display_labels=labels)
-    disp.plot(cmap=plt.cm.Blues)
+    disp.plot(cmap="Blues")
     plt.title("Matriz de Confusão - Fake News (Saúde)")
     plt.savefig(save_confusion_path, bbox_inches="tight")
     plt.close()
