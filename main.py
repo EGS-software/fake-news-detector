@@ -2,8 +2,8 @@ import argparse
 import os
 
 import pandas as pd
-from src.coleta_fake import collect_fake_news
-from src.coleta_fato import collect_fact_news
+from src.service.coleta_fake import collect_fake_news
+from src.service.coleta_fato import collect_fact_news
 from src.treinar_modelo import build_dataset, count_dataset_predictions, train_model
 
 DATA_DIR = "dados"
