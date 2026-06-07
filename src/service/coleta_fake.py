@@ -12,9 +12,23 @@ FEEDS_FAKES = [
 ]
 
 TERMOS_SAUDE = [
-    "emagrece", "emagrecimento", "dieta", "receita", "peso", "barriga",
-    "cápsula", "suplemento", "gordura", "chá", "detox", "médico",
-    "anvisa", "cura", "doença", "câncer", "diabetes",
+    "emagrece",
+    "emagrecimento",
+    "dieta",
+    "receita",
+    "peso",
+    "barriga",
+    "cápsula",
+    "suplemento",
+    "gordura",
+    "chá",
+    "detox",
+    "médico",
+    "anvisa",
+    "cura",
+    "doença",
+    "câncer",
+    "diabetes",
 ]
 
 DEFAULT_OUTPUT_CSV = os.path.join("dados", "saude_fake_bruto.csv")
@@ -25,8 +39,10 @@ def ensure_data_dir():
     os.makedirs("dados", exist_ok=True)
 
 
-def collect_fake_news(force=False, output_csv=DEFAULT_OUTPUT_CSV, preview_csv=DEFAULT_PREVIEW_CSV):
-    ensure_data_dir() # Garante que o diretório de dados exista antes de salvar arquivos
+def collect_fake_news(
+    force=False, output_csv=DEFAULT_OUTPUT_CSV, preview_csv=DEFAULT_PREVIEW_CSV
+):
+    ensure_data_dir()  # Garante que o diretório de dados exista antes de salvar arquivos
     if os.path.exists(output_csv) and not force:
         print(f"Arquivo de Fake News já existe em '{output_csv}', pulando coleta.")
         return pd.read_csv(output_csv)
@@ -37,27 +53,38 @@ def collect_fake_news(force=False, output_csv=DEFAULT_OUTPUT_CSV, preview_csv=DE
     # Itera sobre cada feed de Fake News definido na lista
     for url in FEEDS_FAKES:
         print(f"Lendo a fonte: {url}")
-        try: # Tenta ler o feed RSS e processar os artigos
+        try:  # Tenta ler o feed RSS e processar os artigos
             feed = feedparser.parse(url)
             quantidade = len(feed.entries)
-            print(f"[{feed.feed.get('title', 'Fonte')}] - Encontrados {quantidade} artigos para analisar.")
+            print(
+                f"[{feed.feed.get('title', 'Fonte')}] - Encontrados {quantidade} artigos para analisar."
+            )
 
             # Processa cada artigo do feed, extraindo título, link e conteúdo, e filtrando por termos relacionados à saúde
             for post in feed.entries:
                 titulo = post.get("title", "")
                 link = post.get("link", "")
-                conteudo_bruto = post.get('content', [{'value': post.get('description', '')}])[0]['value']
-                texto_limpo = BeautifulSoup(conteudo_bruto, 'html.parser').get_text(strip=True)
+                conteudo_bruto = post.get(
+                    "content", [{"value": post.get("description", "")}]
+                )[0]["value"]
+                texto_limpo = BeautifulSoup(conteudo_bruto, "html.parser").get_text(
+                    strip=True
+                )
                 texto_teste = (titulo + " " + texto_limpo).lower()
 
-                if any(termo in texto_teste for termo in TERMOS_SAUDE) and len(texto_limpo) > 50:
-                    records.append({
-                        "titulo": titulo,
-                        "texto": texto_limpo,
-                        "classe": "Fake",
-                        "fonte": "RSS Checkers (Saúde)",
-                        "link": link,
-                    })
+                if (
+                    any(termo in texto_teste for termo in TERMOS_SAUDE)
+                    and len(texto_limpo) > 50
+                ):
+                    records.append(
+                        {
+                            "titulo": titulo,
+                            "texto": texto_limpo,
+                            "classe": "Fake",
+                            "fonte": "RSS Checkers (Saúde)",
+                            "link": link,
+                        }
+                    )
         except Exception as exc:
             print(f"Erro ao ler o feed {url}: {exc}")
 
@@ -65,18 +92,22 @@ def collect_fake_news(force=False, output_csv=DEFAULT_OUTPUT_CSV, preview_csv=DE
         if os.path.exists(output_csv):
             print("Nenhuma Fake News nova coletada; usando arquivo existente.")
             return pd.read_csv(output_csv)
-        raise RuntimeError("Não foi possível coletar Fake News e o arquivo base não existe.")
+        raise RuntimeError(
+            "Não foi possível coletar Fake News e o arquivo base não existe."
+        )
 
     df = pd.DataFrame(records).drop_duplicates(subset=["titulo"]).reset_index(drop=True)
     df.to_csv(output_csv, index=False, encoding="utf-8")
     df.to_csv(preview_csv, index=False, encoding="utf-8")
-    print(f"Fake News salvas em '{output_csv}'.\nArquivo de preview salvo em '{preview_csv}'.")
+    print(
+        f"Fake News salvas em '{output_csv}'.\nArquivo de preview salvo em '{preview_csv}'."
+    )
     return df
 
 
 def print_collection_summary(df):
     print(f"\nTotal de Fake News coletadas: {len(df)}")
-    print(df[['titulo', 'classe']].head(5).to_string(index=False))
+    print(df[["titulo", "classe"]].head(5).to_string(index=False))
 
 
 if __name__ == "__main__":

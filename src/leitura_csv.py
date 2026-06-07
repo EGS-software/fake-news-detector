@@ -11,4 +11,4 @@ df_completo = df_completo.sample(frac=1, random_state=42).reset_index(drop=True)
 # Imprime os dados para o seu relatório
 print("--- COMPOSIÇÃO DA BASE DE DADOS ---")
 print(f"Total de textos: {len(df_completo)}")
-print(df_completo['classe'].value_counts())
+print(df_completo["classe"].value_counts())

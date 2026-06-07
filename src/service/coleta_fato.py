@@ -26,15 +26,17 @@ def collect_fact_news(force=False, output_csv=DEFAULT_OUTPUT_CSV):
             titulo = post.get("title", "")
             link = post.get("link", "")
             resumo_html = post.get("description", "")
-            texto_limpo = BeautifulSoup(resumo_html, 'html.parser').get_text(strip=True)
+            texto_limpo = BeautifulSoup(resumo_html, "html.parser").get_text(strip=True)
             if len(texto_limpo) > 30:
-                records.append({
-                    "titulo": titulo,
-                    "texto": texto_limpo,
-                    "classe": "Fato",
-                    "fonte": "G1 Saúde / Oficial",
-                    "link": link,
-                })
+                records.append(
+                    {
+                        "titulo": titulo,
+                        "texto": texto_limpo,
+                        "classe": "Fato",
+                        "fonte": "G1 Saúde / Oficial",
+                        "link": link,
+                    }
+                )
     except Exception as exc:
         print(f"Erro ao processar o feed RSS: {exc}")
 
@@ -42,17 +44,19 @@ def collect_fact_news(force=False, output_csv=DEFAULT_OUTPUT_CSV):
         if os.path.exists(output_csv):
             print("Nenhuma notícia nova coletada; usando arquivo existente.")
             return pd.read_csv(output_csv)
-        raise RuntimeError("Não foi possível coletar fatos e o arquivo base não existe.")
+        raise RuntimeError(
+            "Não foi possível coletar fatos e o arquivo base não existe."
+        )
 
     df = pd.DataFrame(records).drop_duplicates(subset=["titulo"]).reset_index(drop=True)
-    df.to_csv(output_csv, index=False, encoding='utf-8')
+    df.to_csv(output_csv, index=False, encoding="utf-8")
     print(f"Notícias de fato salvas em '{output_csv}'.")
     return df
 
 
 def print_collection_summary(df):
     print(f"\nTotal de fatos coletados: {len(df)}")
-    print(df[['titulo', 'classe']].head(5).to_string(index=False))
+    print(df[["titulo", "classe"]].head(5).to_string(index=False))
 
 
 if __name__ == "__main__":
